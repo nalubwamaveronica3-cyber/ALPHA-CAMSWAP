@@ -18,8 +18,9 @@ jobs:
         echo "Listing files before extraction:"
         ls -la
         echo "Extracting ZIP..."
+        # Extract the first ZIP file found into a folder named 'extracted'
         unzip -o "*.zip" -d extracted/
-        echo "Moving extracted files to root..."
+        # Move the contents of the extracted folder (which is the project root) to the current directory
         mv extracted/*/* ./ 2>/dev/null || mv extracted/* ./ 2>/dev/null || true
         echo "Files after extraction:"
         ls -la
@@ -33,13 +34,14 @@ jobs:
     - name: Make gradlew executable
       run: |
         echo "Looking for gradlew..."
-        find . -name "gradlew" -type f
+        # Find gradlew and make it executable
         chmod +x ./gradlew 2>/dev/null || chmod +x ./Android-CamSwap-OpenSource-2.6/gradlew 2>/dev/null || echo "gradlew not found"
         echo "Current directory contents:"
         ls -la
 
     - name: Build APK
       run: |
+        # Check if gradlew is in the root or in a subfolder and run the build
         if [ -f "./gradlew" ]; then
           echo "Using gradlew in root"
           ./gradlew assembleDebug
@@ -49,8 +51,6 @@ jobs:
           ./gradlew assembleDebug
         else
           echo "ERROR: gradlew not found!"
-          echo "Searching for gradlew one more time:"
-          find . -name "gradlew" -type f -exec ls -la {} \;
           exit 1
         fi
 
