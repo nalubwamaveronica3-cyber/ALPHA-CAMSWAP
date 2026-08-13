@@ -13,14 +13,32 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
+    - name: List files (debug)
+      run: |
+        echo "Files in current directory:"
+        ls -la
+
     - name: Extract ZIP file
       run: |
-        if ls *.zip 1> /dev/null 2>&1; then
-          unzip -o "*.zip" -d .
-          echo "ZIP extracted successfully"
+        # Find any ZIP file and extract it
+        ZIP_FILE=$(ls *.zip 2>/dev/null | head -1)
+        if [ -n "$ZIP_FILE" ]; then
+          echo "Extracting $ZIP_FILE"
+          unzip -o "$ZIP_FILE" -d .
+          echo "Extraction complete"
         else
-          echo "No ZIP file found, using current directory"
+          echo "No ZIP file found"
         fi
+
+    - name: List files after extraction (debug)
+      run: |
+        echo "Files after extraction:"
+        ls -la
+
+    - name: Find gradlew
+      run: |
+        echo "Searching for gradlew:"
+        find . -name "gradlew" -type f
 
     - name: Set up JDK
       uses: actions/setup-java@v4
@@ -29,13 +47,36 @@ jobs:
         distribution: 'temurin'
 
     - name: Make gradlew executable
-      run: chmod +x gradlew
+      run: |
+        # Find and make gradlew executable
+        find . -name "gradlew" -type f -exec chmod +x {} \;
+        # Move to the correct directory if needed
+        if [ -f "./gradlew" ]; then
+          echo "gradlew found in root"
+        elif [ -f "./Android-CamSwap-OpenSource-2.6/gradlew" ]; then
+          echo "gradlew found in subfolder, moving"
+          mv ./Android-CamSwap-OpenSource-2.6/* ./ || true
+        else
+          echo "gradlew not found"
+          find . -name "gradlew" -type f -exec dirname {} \;
+        fi
 
     - name: Build APK
-      run: ./gradlew assembleDebug
+      run: |
+        if [ -f "./gradlew" ]; then
+          ./gradlew assembleDebug
+        elif [ -f "./Android-CamSwap-OpenSource-2.6/gradlew" ]; then
+          cd Android-CamSwap-OpenSource-2.6
+          ./gradlew assembleDebug
+        else
+          echo "gradlew not found"
+          exit 1
+        fi
 
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
         name: camswap-debug-apk
-        path: app/build/outputs/apk/debug/*.apk
+        path: |
+          app/build/outputs/apk/debug/*.apk
+          Android-CamSwap-OpenSource-2.6/app/build/outputs/apk/debug/*.apk
