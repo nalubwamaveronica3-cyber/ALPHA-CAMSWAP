@@ -5,11 +5,13 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
+env:
+  # Force Node.js 24 as recommended in the changelog
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   build:
     runs-on: ubuntu-latest
-    env:
-      ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
 
     steps:
     - name: Checkout code
