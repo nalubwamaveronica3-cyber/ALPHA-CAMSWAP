@@ -2,7 +2,8 @@ name: Build CamSwap APK
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
   workflow_dispatch:
 
 jobs:
@@ -10,46 +11,54 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout source
+        uses: actions/checkout@v4
 
-    - name: Extract ZIP file
-      run: |
-        echo "Extracting ZIP..."
-        unzip -o "*.zip" -d extracted/
-        echo "Moving files to root..."
-        mv extracted/*/* ./ 2>/dev/null || mv extracted/* ./ 2>/dev/null || true
-        echo "Checking for gradlew..."
-        find . -name "gradlew" -type f
+      - name: Show project structure
+        run: |
+          echo "=== Repository contents ==="
+          find . -maxdepth 3 -type f | sort | head -300
 
-    - name: Set up JDK
-      uses: actions/setup-java@v4
-      with:
-        java-version: '17'
-        distribution: 'temurin'
+          echo "=== Finding Gradle wrapper ==="
+          find . -name "gradlew" -type f -print
 
-    - name: Make gradlew executable
-      run: |
-        chmod +x ./gradlew 2>/dev/null || chmod +x ./Android-CamSwap-OpenSource-2.6/gradlew 2>/dev/null || echo "gradlew not found"
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
 
-    - name: Build APK
-      run: |
-        if [ -f "./gradlew" ]; then
-          echo "Building from root..."
+      - name: Build APK
+        run: |
+          GRADLEW=$(find . -name "gradlew" -type f | head -1)
+
+          if [ -z "$GRADLEW" ]; then
+            echo "ERROR: gradlew was not found."
+            echo "The repository does not appear to contain a Gradle Android project."
+            exit 1
+          fi
+
+          echo "Found Gradle wrapper:"
+          echo "$GRADLEW"
+
+          chmod +x "$GRADLEW"
+
+          PROJECT_DIR=$(dirname "$GRADLEW")
+          cd "$PROJECT_DIR"
+
+          echo "Building from:"
+          pwd
+
           ./gradlew assembleDebug --stacktrace
-        elif [ -f "./Android-CamSwap-OpenSource-2.6/gradlew" ]; then
-          echo "Building from subfolder..."
-          cd Android-CamSwap-OpenSource-2.6
-          ./gradlew assembleDebug --stacktrace
-        else
-          echo "ERROR: gradlew not found!"
-          exit 1
-        fi
 
-    - name: Upload APK
-      uses: actions/upload-artifact@v4
-      with:
-        name: camswap-debug-apk
-        path: |
-          app/build/outputs/apk/debug/*.apk
-          Android-CamSwap-OpenSource-2.6/app/build/outputs/apk/debug/*.apk
+      - name: Find APK
+        run: |
+          echo "=== APK files ==="
+          find . -type f -name "*.apk" -print
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: camswap-debug-apk
+          path: '**/build/outputs/apk/debug/*.apk'
+          if-no-files-found: error
