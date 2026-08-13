@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 env:
-  # Force Node.js 24 (fixes the deprecation error)
+  # Force Node.js 24 to handle the deprecation warning
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
@@ -17,14 +17,25 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Extract ZIP file
+    - name: Extract ZIP file and set project root
       run: |
-        echo "Listing files before extraction:"
-        ls -la
-        echo "Extracting ZIP..."
-        unzip -o "*.zip" -d extracted/
-        mv extracted/*/* ./ 2>/dev/null || mv extracted/* ./ 2>/dev/null || true
-        echo "Files after extraction:"
+        # Find the first ZIP file
+        ZIP_FILE=$(ls *.zip | head -1)
+        echo "Found ZIP file: $ZIP_FILE"
+        
+        # Extract it into a folder named 'source'
+        unzip -o "$ZIP_FILE" -d source/
+        
+        # Find the actual project folder inside 'source'
+        # The extracted folder might be 'Android-CamSwap-OpenSource-2.6' or similar
+        PROJECT_FOLDER=$(find source -maxdepth 1 -type d -not -path source | head -1)
+        echo "Project folder is: $PROJECT_FOLDER"
+        
+        # Move the contents of the project folder up to the root directory
+        mv $PROJECT_FOLDER/* ./
+        mv $PROJECT_FOLDER/.[!.]* ./ 2>/dev/null || true
+        
+        echo "Final directory structure:"
         ls -la
 
     - name: Set up JDK
@@ -33,31 +44,15 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
-    - name: Make gradlew executable
+    - name: Make gradlew executable and build
       run: |
-        echo "Looking for gradlew..."
-        chmod +x ./gradlew 2>/dev/null || chmod +x ./Android-CamSwap-OpenSource-2.6/gradlew 2>/dev/null || echo "gradlew not found"
-        echo "Current directory contents:"
-        ls -la
-
-    - name: Build APK
-      run: |
-        if [ -f "./gradlew" ]; then
-          echo "Using gradlew in root"
-          ./gradlew assembleDebug
-        elif [ -f "./Android-CamSwap-OpenSource-2.6/gradlew" ]; then
-          echo "Using gradlew in subfolder"
-          cd Android-CamSwap-OpenSource-2.6
-          ./gradlew assembleDebug
-        else
-          echo "ERROR: gradlew not found!"
-          exit 1
-        fi
+        # Ensure gradlew is executable
+        chmod +x ./gradlew
+        echo "Starting build..."
+        ./gradlew assembleDebug
 
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
         name: camswap-debug-apk
-        path: |
-          app/build/outputs/apk/debug/*.apk
-          Android-CamSwap-OpenSource-2.6/app/build/outputs/apk/debug/*.apk
+        path: app/build/outputs/apk/debug/*.apk
