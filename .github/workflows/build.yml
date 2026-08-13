@@ -11,43 +11,68 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v5
+      uses: actions/checkout@v4
 
-    - name: Extract ZIP file and set project root
+    - name: Extract ZIP file
       run: |
-        # Find the first ZIP file
-        ZIP_FILE=$(ls *.zip | head -1)
-        echo "Found ZIP file: $ZIP_FILE"
-        
-        # Extract it into a folder named 'source'
-        unzip -o "$ZIP_FILE" -d source/
-        
-        # Find the actual project folder inside 'source'
-        PROJECT_FOLDER=$(find source -maxdepth 1 -type d -not -path source | head -1)
-        echo "Project folder is: $PROJECT_FOLDER"
-        
-        # Move the contents of the project folder up to the root directory
-        mv $PROJECT_FOLDER/* ./
-        mv $PROJECT_FOLDER/.[!.]* ./ 2>/dev/null || true
-        
-        echo "Final directory structure:"
+        echo "=== LISTING FILES BEFORE EXTRACTION ==="
         ls -la
+        
+        echo "=== EXTRACTING ZIP ==="
+        unzip -o "*.zip" -d extracted/
+        
+        echo "=== LISTING EXTRACTED FOLDER ==="
+        ls -la extracted/
+        
+        echo "=== MOVING FILES TO ROOT ==="
+        # Move everything from the extracted folder to root
+        mv extracted/*/* ./ 2>/dev/null || mv extracted/* ./ 2>/dev/null || true
+        
+        echo "=== FINAL DIRECTORY STRUCTURE ==="
+        ls -la
+        
+        echo "=== CHECKING FOR GRADLEW ==="
+        find . -name "gradlew" -type f
 
     - name: Set up JDK
-      uses: actions/setup-java@v5
+      uses: actions/setup-java@v4
       with:
         java-version: '17'
         distribution: 'temurin'
 
-    - name: Make gradlew executable and build
+    - name: Make gradlew executable
       run: |
-        # Ensure gradlew is executable
-        chmod +x ./gradlew
-        echo "Starting build..."
-        ./gradlew assembleDebug
+        echo "=== MAKING GRADLEW EXECUTABLE ==="
+        chmod +x ./gradlew 2>/dev/null || echo "gradlew not found in root"
+        chmod +x ./Android-CamSwap-OpenSource-2.6/gradlew 2>/dev/null || echo "gradlew not found in subfolder"
+        
+        echo "=== CHECKING JAVA VERSION ==="
+        java -version
+        
+        echo "=== CHECKING GRADLEW VERSION ==="
+        ./gradlew --version 2>/dev/null || echo "gradlew not found"
+
+    - name: Build APK
+      run: |
+        echo "=== STARTING BUILD ==="
+        if [ -f "./gradlew" ]; then
+          echo "Using gradlew in root"
+          ./gradlew assembleDebug --stacktrace
+        elif [ -f "./Android-CamSwap-OpenSource-2.6/gradlew" ]; then
+          echo "Using gradlew in subfolder"
+          cd Android-CamSwap-OpenSource-2.6
+          ./gradlew assembleDebug --stacktrace
+        else
+          echo "ERROR: gradlew not found!"
+          echo "Searching for gradlew:"
+          find . -name "gradlew" -type f
+          exit 1
+        fi
 
     - name: Upload APK
-      uses: actions/upload-artifact@v5
+      uses: actions/upload-artifact@v4
       with:
         name: camswap-debug-apk
-        path: app/build/outputs/apk/debug/*.apk
+        path: |
+          app/build/outputs/apk/debug/*.apk
+          Android-CamSwap-OpenSource-2.6/app/build/outputs/apk/debug/*.apk
