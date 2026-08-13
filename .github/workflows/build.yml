@@ -7,7 +7,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04  # <-- Changed from ubuntu-latest
 
     steps:
     - name: Checkout code
@@ -15,24 +15,8 @@ jobs:
 
     - name: Extract ZIP file
       run: |
-        echo "=== LISTING FILES BEFORE EXTRACTION ==="
-        ls -la
-        
-        echo "=== EXTRACTING ZIP ==="
         unzip -o "*.zip" -d extracted/
-        
-        echo "=== LISTING EXTRACTED FOLDER ==="
-        ls -la extracted/
-        
-        echo "=== MOVING FILES TO ROOT ==="
-        # Move everything from the extracted folder to root
         mv extracted/*/* ./ 2>/dev/null || mv extracted/* ./ 2>/dev/null || true
-        
-        echo "=== FINAL DIRECTORY STRUCTURE ==="
-        ls -la
-        
-        echo "=== CHECKING FOR GRADLEW ==="
-        find . -name "gradlew" -type f
 
     - name: Set up JDK
       uses: actions/setup-java@v4
@@ -40,32 +24,15 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
-    - name: Make gradlew executable
+    - name: Make gradlew executable and build
       run: |
-        echo "=== MAKING GRADLEW EXECUTABLE ==="
-        chmod +x ./gradlew 2>/dev/null || echo "gradlew not found in root"
-        chmod +x ./Android-CamSwap-OpenSource-2.6/gradlew 2>/dev/null || echo "gradlew not found in subfolder"
-        
-        echo "=== CHECKING JAVA VERSION ==="
-        java -version
-        
-        echo "=== CHECKING GRADLEW VERSION ==="
-        ./gradlew --version 2>/dev/null || echo "gradlew not found"
-
-    - name: Build APK
-      run: |
-        echo "=== STARTING BUILD ==="
+        chmod +x ./gradlew || chmod +x ./Android-CamSwap-OpenSource-2.6/gradlew || echo "gradlew not found"
         if [ -f "./gradlew" ]; then
-          echo "Using gradlew in root"
-          ./gradlew assembleDebug --stacktrace
+          ./gradlew assembleDebug
         elif [ -f "./Android-CamSwap-OpenSource-2.6/gradlew" ]; then
-          echo "Using gradlew in subfolder"
           cd Android-CamSwap-OpenSource-2.6
-          ./gradlew assembleDebug --stacktrace
+          ./gradlew assembleDebug
         else
-          echo "ERROR: gradlew not found!"
-          echo "Searching for gradlew:"
-          find . -name "gradlew" -type f
           exit 1
         fi
 
