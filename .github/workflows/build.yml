@@ -7,7 +7,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-20.04  # <-- Changed from ubuntu-latest
+    runs-on: ubuntu-latest
 
     steps:
     - name: Checkout code
@@ -15,8 +15,12 @@ jobs:
 
     - name: Extract ZIP file
       run: |
+        echo "Extracting ZIP..."
         unzip -o "*.zip" -d extracted/
+        echo "Moving files to root..."
         mv extracted/*/* ./ 2>/dev/null || mv extracted/* ./ 2>/dev/null || true
+        echo "Checking for gradlew..."
+        find . -name "gradlew" -type f
 
     - name: Set up JDK
       uses: actions/setup-java@v4
@@ -24,15 +28,21 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
-    - name: Make gradlew executable and build
+    - name: Make gradlew executable
       run: |
-        chmod +x ./gradlew || chmod +x ./Android-CamSwap-OpenSource-2.6/gradlew || echo "gradlew not found"
+        chmod +x ./gradlew 2>/dev/null || chmod +x ./Android-CamSwap-OpenSource-2.6/gradlew 2>/dev/null || echo "gradlew not found"
+
+    - name: Build APK
+      run: |
         if [ -f "./gradlew" ]; then
-          ./gradlew assembleDebug
+          echo "Building from root..."
+          ./gradlew assembleDebug --stacktrace
         elif [ -f "./Android-CamSwap-OpenSource-2.6/gradlew" ]; then
+          echo "Building from subfolder..."
           cd Android-CamSwap-OpenSource-2.6
-          ./gradlew assembleDebug
+          ./gradlew assembleDebug --stacktrace
         else
+          echo "ERROR: gradlew not found!"
           exit 1
         fi
 
