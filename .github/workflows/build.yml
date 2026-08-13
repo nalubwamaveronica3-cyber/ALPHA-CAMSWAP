@@ -5,17 +5,13 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
-env:
-  # Force Node.js 24 to handle the deprecation warning
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
 
     - name: Extract ZIP file and set project root
       run: |
@@ -27,7 +23,6 @@ jobs:
         unzip -o "$ZIP_FILE" -d source/
         
         # Find the actual project folder inside 'source'
-        # The extracted folder might be 'Android-CamSwap-OpenSource-2.6' or similar
         PROJECT_FOLDER=$(find source -maxdepth 1 -type d -not -path source | head -1)
         echo "Project folder is: $PROJECT_FOLDER"
         
@@ -39,7 +34,7 @@ jobs:
         ls -la
 
     - name: Set up JDK
-      uses: actions/setup-java@v4
+      uses: actions/setup-java@v5
       with:
         java-version: '17'
         distribution: 'temurin'
@@ -52,7 +47,7 @@ jobs:
         ./gradlew assembleDebug
 
     - name: Upload APK
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: camswap-debug-apk
         path: app/build/outputs/apk/debug/*.apk
