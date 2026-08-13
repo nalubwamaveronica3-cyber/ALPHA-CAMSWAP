@@ -5,6 +5,10 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
+env:
+  # Force GitHub Actions to use Node.js 24 for all JavaScript actions
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -18,7 +22,7 @@ jobs:
         echo "Listing files before extraction:"
         ls -la
         echo "Extracting ZIP..."
-        # Extract the first ZIP file found into a folder named 'extracted'
+        # Extract the first ZIP file found
         unzip -o "*.zip" -d extracted/
         # Move the contents of the extracted folder (which is the project root) to the current directory
         mv extracted/*/* ./ 2>/dev/null || mv extracted/* ./ 2>/dev/null || true
@@ -34,7 +38,7 @@ jobs:
     - name: Make gradlew executable
       run: |
         echo "Looking for gradlew..."
-        # Find gradlew and make it executable
+        # Find and make gradlew executable
         chmod +x ./gradlew 2>/dev/null || chmod +x ./Android-CamSwap-OpenSource-2.6/gradlew 2>/dev/null || echo "gradlew not found"
         echo "Current directory contents:"
         ls -la
